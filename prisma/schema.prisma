@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  TEACHER
+  STAFF
+  ADMIN
+}
+
+enum ItemType {
+  FOUND
+  LOST
+}
+
+enum ItemStatus {
+  FOUND
+  CLAIMED
+  EXPIRED
+  DONATED
+}
+
+enum Category {
+  BAG
+  CLOTHING
+  STATIONERY
+  ELECTRONIC
+  DOCUMENT
+  MONEY
+  KEY
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWED
+  DISMISSED
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String
+  studentCode  String?
+  role         Role          @default(STUDENT)
+  passwordHash String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  items        Item[]        @relation("CreatedItems")
+  claims       ClaimRecord[]
+  reports      Report[]
+}
+
+model Item {
+  id             String        @id @default(cuid())
+  type           ItemType
+  status         ItemStatus    @default(FOUND)
+  title          String
+  quantity       Int           @default(1)
+  category       Category
+  location       String
+  eventDate      DateTime
+  description    String?
+  imageUrl       String?
+  finderName     String?
+  finderCode     String?
+  expiresAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  createdById    String
+  createdBy      User          @relation("CreatedItems", fields: [createdById], references: [id])
+  claimRecord    ClaimRecord?
+  reports        Report[]
+
+  @@index([type, status])
+  @@index([category])
+  @@index([location])
+  @@index([eventDate])
+}
+
+model ClaimRecord {
+  id             String   @id @default(cuid())
+  itemId         String   @unique
+  item           Item     @relation(fields: [itemId], references: [id])
+  receiverName   String
+  receiverEmail  String?
+  receiverCode   String?
+  verifiedById   String
+  verifiedBy     User     @relation(fields: [verifiedById], references: [id])
+  claimedAt      DateTime @default(now())
+  note           String?
+}
+
+model Report {
+  id          String       @id @default(cuid())
+  itemId      String
+  item        Item         @relation(fields: [itemId], references: [id])
+  reporterId  String
+  reporter    User         @relation(fields: [reporterId], references: [id])
+  reason      String
+  status      ReportStatus @default(OPEN)
+  createdAt   DateTime     @default(now())
+}
